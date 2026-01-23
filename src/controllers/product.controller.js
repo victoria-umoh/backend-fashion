@@ -141,6 +141,8 @@ export const updateProduct = async (req, res, next) => {
     product.countInStock = req.body.countInStock !== undefined ? req.body.countInStock : product.countInStock;
     product.sizes = req.body.sizes || product.sizes;
     product.colors = req.body.colors || product.colors;
+    product.promoPrice = req.body.promoPrice !== undefined ? req.body.promoPrice : product.promoPrice;
+    product.onSale = req.body.onSale !== undefined ? req.body.onSale : product.onSale;
 
     const updatedProduct = await product.save();
     console.log('Updated image URL:', updatedProduct.image);
@@ -173,9 +175,6 @@ export const deleteProduct = async (req, res, next) => {
   }
 };
 
-// @desc    Create new review
-// @route   POST /api/products/:id/reviews
-// @access  Private
 // @desc    Create new review
 // @route   POST /api/products/:id/reviews
 // @access  Private
@@ -221,6 +220,20 @@ export const createProductReview = asyncHandler(async (req, res) => {
 
     await product.save();
     res.status(201).json({ message: 'Review added' });
+  } else {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+});
+
+// @desc    Get product reviews
+// @route   GET /api/products/:id/reviews
+// @access  Public
+export const getProductReviews = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id).populate('reviews.user', 'name');
+
+  if (product) {
+    res.json(product.reviews);
   } else {
     res.status(404);
     throw new Error('Product not found');

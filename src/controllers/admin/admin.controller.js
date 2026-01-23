@@ -20,7 +20,14 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   ]);
   const totalRevenue = sales.length > 0 ? sales[0].totalRevenue : 0;
 
-  // 3. Fetch 7-Day Chart Data (MOVED INSIDE THE FUNCTION)
+  // 3. Calculate Total Reviews
+  const reviewStats = await Product.aggregate([
+    { $project: { numReviews: 1 } },
+    { $group: { _id: null, totalReviews: { $sum: '$numReviews' } } }
+  ]);
+  const totalReviews = reviewStats.length > 0 ? reviewStats[0].totalReviews : 0;
+
+  // 4. Fetch 7-Day Chart Data
   const salesData = await Order.aggregate([
     { $match: { isPaid: true } },
     {
@@ -33,26 +40,27 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     { $limit: 7 }
   ]);
 
-  // 4. Fetch 5 Most Recent Orders
+  // 5. Fetch 5 Most Recent Orders
   const recentOrders = await Order.find()
     .sort({ createdAt: -1 }) 
     .limit(5)
     .populate('user', 'name');
 
-  // 5. Fetch Low Stock Products
+  // 6. Fetch Low Stock Products
   const lowStockProducts = await Product.find({ countInStock: { $lt: 5 } })
     .select('name countInStock price')
     .limit(10);
 
-  // 6. Send EVERYTING in one single combined response
+  // 7. Send EVERYTHING in one single combined response
   res.json({
     totalOrders,
     totalUsers,
     totalProducts,
+    totalReviews,
     totalRevenue: Number(totalRevenue).toFixed(2),
     recentOrders,
     lowStockProducts,
-    salesData // <--- This is what your chart uses!
+    salesData
   });
 });
 

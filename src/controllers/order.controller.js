@@ -197,7 +197,7 @@ export const updateOrderToPaid = async (req, res) => {
       const itemsHtml = order.orderItems.map(item => `
         <tr>
           <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name} (x${item.qty})</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">$${(item.price * item.qty).toFixed(2)}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₦${(item.price * item.qty).toFixed(2)}</td>
         </tr>
       `).join('');
 
@@ -222,7 +222,7 @@ export const updateOrderToPaid = async (req, res) => {
             </table>
             
             <div style="text-align: right; font-weight: bold; font-size: 1.2rem;">
-              Total Paid: $${order.totalPrice.toFixed(2)}
+              Total Paid: ₦${order.totalPrice.toFixed(2)}
             </div>
             
             <p style="margin-top: 30px;">You can track your order status anytime in your profile.</p>

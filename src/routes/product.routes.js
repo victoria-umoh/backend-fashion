@@ -6,7 +6,8 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  createProductReview
+  createProductReview,
+  getProductReviews
 } from "../controllers/product.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 import adminOnly from "../middlewares/role.middleware.js";
@@ -30,7 +31,9 @@ const upload = multer({
 // Public routes
 router.get("/", getProducts);
 router.get("/:id", getProductById);
-router.route('/:id/reviews').post(protect, createProductReview);
+router.route('/:id/reviews')
+  .get(getProductReviews)
+  .post(protect, createProductReview);
 
 // Admin routes
 router.post("/", protect, adminOnly, upload.single('image'), createProduct);

@@ -30,7 +30,7 @@ const productlistScreen = () => {
     const createProductHandler = async () => {
         try {
             const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-            const { data } = await API.post(`/api/products`, {}
+            const { data } = await API.post(`/api/products`, {}, config);
             window.location.href = `/admin/product/${data._id}/edit`;
         } catch (err) {
             swal("Error", "Could not create product", "error");
@@ -66,7 +66,7 @@ const productlistScreen = () => {
                         <tr key={product._id}>
                             <td className="text-muted small">{product._id.substring(0, 10)}...</td>
                             <td className="fw-bold">{product.name}</td>
-                            <td>${product.price}</td>
+                            <td>₦{product.price}</td>
                             <td>{product.category}</td>
                             <td>{product.brand}</td>
                             <td className="text-center">

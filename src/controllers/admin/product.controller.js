@@ -30,7 +30,9 @@ const createProduct = asyncHandler(async (req, res) => {
     sizes,
     colors,
     category, 
-    countInStock 
+    countInStock,
+    promoPrice,
+    onSale
   } = req.body;
 
   // let imageUrl = image || '/images/sample.jpg';
@@ -53,6 +55,8 @@ const createProduct = asyncHandler(async (req, res) => {
     category: category || 'General',
     countInStock: countInStock || 0,
     description: description || 'No description provided',
+    promoPrice: promoPrice || 0,
+    onSale: onSale || false,
   });
 
   const createdProduct = await product.save();
@@ -76,7 +80,9 @@ const updateProduct = asyncHandler(async (req, res) => {
     sizes,
     colors,
     category, 
-    countInStock 
+    countInStock,
+    promoPrice,
+    onSale
   } = req.body;
 
   const product = await Product.findById(req.params.id);
@@ -104,6 +110,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.colors = colors || product.colors;
     product.category = category || product.category;
     product.countInStock = countInStock !== undefined ? countInStock : product.countInStock;
+    product.promoPrice = promoPrice !== undefined ? promoPrice : product.promoPrice;
+    product.onSale = onSale !== undefined ? onSale : product.onSale;
 
     const updatedProduct = await product.save();
     console.log('Product updated successfully');
