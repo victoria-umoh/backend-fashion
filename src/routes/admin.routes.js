@@ -56,7 +56,6 @@ router.put('/orders/:id/pay', protect, authorize('admin'), adminMarkOrderAsPaid)
 
 // --- Coupon Management ---
 // Note: Customer coupon validation is in /api/coupons/validate
-
 // Admin Coupon CRUD
 router.route('/coupons')
   .get(protect, authorize('admin'), getCoupons)
