@@ -17,6 +17,7 @@ const productSchema = mongoose.Schema({
     numReviews: { type: Number, required: true, default: 0 },
     promoPrice: { type: Number, default: 0 }, // The sale price
     onSale: { type: Boolean, default: false },
+    
 }, {
     timestamps: true
 });
