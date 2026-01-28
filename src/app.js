@@ -12,31 +12,33 @@ import adminRoutes from "./routes/admin.routes.js";
 
 const app = express();
 
-// CORS Configuration
+// Normalize URLs by removing trailing slashes
+const normalizeUrl = (url) => url?.replace(/\/$/, '') || url;
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://fashion-frontend.netlify.app',
+  process.env.FRONTEND_URL
+].map(normalizeUrl).filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
-
-// const allowedOrigins = [
-//   'http://localhost:3000',               // Local React (Standard)
-//   'http://localhost:5173',               // Local Vite (If you used Vite)
-//   'https://fashion-frontend.netlify.app' // Live Production
-// ];
-
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     // Allow requests with no origin (like mobile apps or curl)
-//     if (!origin) return callback(null, true);
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
     
-//     if (allowedOrigins.indexOf(origin) === -1) {
-//       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-//       return callback(new Error(msg), false);
-//     }
-//     return callback(null, true);
-//   },
-//   credentials: true
-// }));
+    // Normalize origin for comparison
+    const normalizedOrigin = normalizeUrl(origin);
+    
+    if (!allowedOrigins.includes(normalizedOrigin)) {
+      return callback(new Error('CORS Policy block'), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 app.use(morgan("dev"));
