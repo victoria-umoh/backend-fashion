@@ -9,7 +9,7 @@ const couponSchema = mongoose.Schema(
       uppercase: true // Codes like "SAVE10" are easier to read in caps
     },
     expiry: { type: Date, required: true },
-    discount: { type: Number, required: true }, // The percentage off (e.g., 10 for 10%)
+    discount: { type: Number, required: true, min: 0, max: 100 },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

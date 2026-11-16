@@ -9,6 +9,7 @@ export const uploadImage = async (dataURI) => {
     });
     return result.secure_url;
   } catch (error) {
-    throw new Error('Image upload failed');
+    console.error('Cloudinary image upload failed:', error.message);
+    throw Object.assign(new Error('Image upload failed.'), { statusCode: 502 });
   }
 };

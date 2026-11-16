@@ -1,6 +1,6 @@
 import express from 'express';
-import multer from 'multer';
 import { protect, authorize } from '../middlewares/auth.middleware.js'; 
+import { uploadSingleImage } from '../middlewares/image-upload.middleware.js';
 import { 
   deleteProduct, 
   createProduct, 
@@ -13,7 +13,10 @@ import {
   getCoupons, 
   updateCoupon,
   getCouponStatus,
-  getAllUsers
+  getAllUsers,
+  createUser,
+  updateUser,
+  deleteUser
 } from '../controllers/admin/admin.controller.js';
 import { 
   getOrders, 
@@ -23,30 +26,23 @@ import {
 
 const router = express.Router();
 
-// --- Middleware Configuration ---
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, 
-  fileFilter: (req, file, cb) => {
-    file.mimetype.startsWith('image/') 
-      ? cb(null, true) 
-      : cb(new Error('Only image files are allowed'), false);
-  },
-});
-
 // --- Dashboard Stats ---
 router.get('/stats', protect, authorize('admin'), getDashboardStats);
 
 // --- User Management ---
-router.get('/users', protect, authorize('admin'), getAllUsers);
+router.route('/users')
+  .get(protect, authorize('admin'), getAllUsers)
+  .post(protect, authorize('admin'), createUser);
+router.route('/users/:id')
+  .put(protect, authorize('admin'), updateUser)
+  .delete(protect, authorize('admin'), deleteUser);
 
 // --- Product Management ---
 router.route('/products')
-  .post(protect, authorize('admin'), upload.single('image'), createProduct);
+  .post(protect, authorize('admin'), uploadSingleImage, createProduct);
 
 router.route('/products/:id')
-  .put(protect, authorize('admin'), upload.single('image'), updateProduct)
+  .put(protect, authorize('admin'), uploadSingleImage, updateProduct)
   .delete(protect, authorize('admin'), deleteProduct);
 
 // --- Order Management ---

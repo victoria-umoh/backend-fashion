@@ -1,8 +1,7 @@
 const errorHandler = (err, req, res, next) => {
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let statusCode = err.statusCode || err.status || (res.statusCode === 200 ? 500 : res.statusCode);
   let message = err.message;
 
-  // Log error for the developer
   console.error(`Error: ${err.message}`);
 
   // 1. Mongoose bad ObjectId (CastError)
@@ -22,10 +21,17 @@ const errorHandler = (err, req, res, next) => {
     message = Object.values(err.errors).map(val => val.message).join(', ');
     statusCode = 400;
   }
+  if (err.name === 'MulterError') {
+    message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Image must be 5 MB or smaller.'
+      : 'Invalid image upload.';
+    statusCode = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+  }
 
-  // Final single response
   res.status(err.statusCode || statusCode).json({
-    message: message || 'Server Error',
+    message: process.env.NODE_ENV === 'production' && statusCode >= 500
+      ? 'Server error'
+      : message || 'Server error',
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 };

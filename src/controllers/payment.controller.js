@@ -1,39 +1,76 @@
 import axios from 'axios';
 import asyncHandler from 'express-async-handler';
+import Order from '../models/order.model.js';
+import {
+  buildOrderQuote,
+  normalizeShippingAddress,
+} from '../services/checkout.service.js';
 
-// Initialize a Paystack transaction server-side so the secret key isn't exposed
+const paystackHeaders = () => ({
+  Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+  'Content-Type': 'application/json',
+});
+
 export const initializePayment = asyncHandler(async (req, res) => {
-  const { email, amount, metadata } = req.body;
-
-  if (!email || !amount) {
-    return res.status(400).json({ message: 'email and amount are required' });
+  if (!process.env.PAYSTACK_SECRET_KEY) {
+    return res.status(503).json({ message: 'Online payments are not configured yet.' });
+  }
+  if (!req.user?.email) {
+    return res.status(400).json({ message: 'A valid account email is required for payment.' });
   }
 
-  // Paystack expects amount in the smallest currency unit (kobo for NGN)
-  const payload = {
-    email,
-    amount: Math.round(Number(amount)),
-    metadata: metadata || {},
-  };
+  const quote = await buildOrderQuote(req.body);
+  const shippingAddress = normalizeShippingAddress(req.body.shippingAddress);
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+  const order = await Order.create({
+    ...quote,
+    user: req.user._id,
+    shippingAddress,
+    paymentMethod: 'Paystack',
+    isPaid: false,
+    expiresAt,
+  });
 
   try {
-    const { data } = await axios.post(
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const callbackUrl = new URL('/payment/callback', frontendUrl);
+    callbackUrl.searchParams.set('orderId', order._id.toString());
+    const { data: response } = await axios.post(
       'https://api.paystack.co/transaction/initialize',
-      payload,
       {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
+        email: req.user.email,
+        amount: Math.round(order.totalPrice * 100),
+        currency: 'NGN',
+        callback_url: callbackUrl.toString(),
+        metadata: { orderId: order._id.toString() },
+      },
+      { headers: paystackHeaders() }
     );
 
-    // Forward Paystack response to client (contains authorization_url and access_code)
-    res.json(data);
+    if (!response.status || !response.data?.authorization_url || !response.data?.reference) {
+      throw Object.assign(new Error('Payment provider did not return a valid checkout session.'), {
+        statusCode: 502,
+      });
+    }
+
+    order.paymentResult = {
+      id: response.data.reference,
+      status: 'initialized',
+      update_time: new Date().toISOString(),
+      email_address: req.user.email,
+    };
+    await order.save();
+    return res.status(201).json({
+      orderId: order._id,
+      reference: response.data.reference,
+      authorizationUrl: response.data.authorization_url,
+    });
   } catch (error) {
-    const status = error.response?.status || 500;
-    const body = error.response?.data || { message: error.message };
-    res.status(status).json(body);
+    await Order.deleteOne({ _id: order._id, isPaid: false });
+    if (error.response) {
+      return res.status(502).json({ message: 'Unable to initialize payment. Please try again.' });
+    }
+    throw error;
   }
 });
 

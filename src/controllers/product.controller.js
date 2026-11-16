@@ -22,9 +22,51 @@ import asyncHandler from 'express-async-handler';
 //   }
 // };
 
-export const getProducts = async (req, res, next) => {
-  const products = await Product.find({}); // Fetch ALL products
-  res.json(products);
+export const getProducts = async (req, res) => {
+  const { keyword = '', category = '', sort = 'newest' } = req.query;
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
+  const filter = {};
+  const normalizedKeyword = typeof keyword === 'string' ? keyword.trim() : '';
+  const normalizedCategory = typeof category === 'string' ? category.trim() : '';
+
+  if (normalizedKeyword) {
+    const escapedKeyword = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.$or = ['name', 'brand', 'category'].map((field) => ({
+      [field]: { $regex: escapedKeyword, $options: 'i' },
+    }));
+  }
+
+  if (normalizedCategory) {
+    filter.category = normalizedCategory;
+  }
+
+  const sortOptions = {
+    newest: { createdAt: -1 },
+    'price-low': { price: 1 },
+    'price-high': { price: -1 },
+    rating: { rating: -1 },
+    name: { name: 1 },
+  };
+  const sortBy = sortOptions[sort] || sortOptions.newest;
+
+  if (Object.keys(req.query).length === 0) {
+    return res.json(await Product.find({}).sort(sortBy));
+  }
+
+  const [products, total, categories] = await Promise.all([
+    Product.find(filter).sort(sortBy).skip((page - 1) * limit).limit(limit),
+    Product.countDocuments(filter),
+    Product.distinct('category'),
+  ]);
+
+  res.json({
+    products,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    categories: categories.filter((value) => typeof value === 'string' && value.trim()).sort(),
+  });
 };
 
 
@@ -65,7 +107,7 @@ export const createProduct = async (req, res, next) => {
     console.log('File received:', req.file ? 'Yes' : 'No');
     console.log('Request body:', req.body);
     
-    let imageUrl = '';
+    let imageUrl = req.body.image || '/assets/images/clean-blank-shirt-hanger.jpg';
 
     if (req.file) {
       // Upload to Cloudinary
@@ -75,9 +117,6 @@ export const createProduct = async (req, res, next) => {
       const result = await uploadImage(dataURI);
       imageUrl = result;
       console.log('Image uploaded to:', imageUrl);
-    } else {
-      console.log('No file uploaded, using default');
-      imageUrl = '/images/sample.jpg';
     }
 
     const product = new Product({

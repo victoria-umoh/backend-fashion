@@ -15,6 +15,13 @@
 // config/db.js
 import mongoose from 'mongoose';
 
+export const supportsTransactions = () => {
+    const topologyType = mongoose.connection.client?.topology?.description?.type;
+    return topologyType === 'ReplicaSetWithPrimary'
+        || topologyType === 'ReplicaSetNoPrimary'
+        || topologyType === 'Sharded';
+};
+
 const connectDB = async () => {
     try {
         // Set Mongoose options

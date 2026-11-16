@@ -163,6 +163,117 @@ export const getCouponStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/users
 // @access  Private/Admin
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({}).select('-password');
+  const users = await User.find({}).select('-password').sort({ createdAt: -1 });
   res.json(users);
+});
+
+const userRoles = ['user', 'admin', 'editor'];
+
+export const createUser = asyncHandler(async (req, res) => {
+  const { name, email, password, role = 'user' } = req.body;
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+  if (typeof name !== 'string' || !name.trim() || !normalizedEmail || typeof password !== 'string' || !password) {
+    res.status(400);
+    throw new Error('Name, email, and password are required.');
+  }
+  if (password.length < 6) {
+    res.status(400);
+    throw new Error('Password must be at least 6 characters.');
+  }
+  if (!userRoles.includes(role)) {
+    res.status(400);
+    throw new Error('Invalid user role.');
+  }
+  if (await User.findOne({ email: normalizedEmail })) {
+    res.status(400);
+    throw new Error('A user with this email already exists.');
+  }
+
+  const user = await User.create({
+    name: name.trim(),
+    email: normalizedEmail,
+    password,
+    role,
+    isVerified: true,
+  });
+  res.status(201).json(await User.findById(user._id).select('-password'));
+});
+
+export const updateUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found.');
+  }
+
+  const { name, email, password, role } = req.body;
+  if (name !== undefined) {
+    if (typeof name !== 'string' || !name.trim()) {
+      res.status(400);
+      throw new Error('Name cannot be empty.');
+    }
+    user.name = name.trim();
+  }
+
+  if (email !== undefined) {
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!normalizedEmail) {
+      res.status(400);
+      throw new Error('Email cannot be empty.');
+    }
+    const duplicateUser = await User.findOne({
+      email: normalizedEmail,
+      _id: { $ne: user._id },
+    });
+    if (duplicateUser) {
+      res.status(400);
+      throw new Error('A user with this email already exists.');
+    }
+    if (user.email !== normalizedEmail) {
+      user.email = normalizedEmail;
+      user.isVerified = false;
+      user.emailVerificationTokenHash = undefined;
+      user.emailVerificationExpires = undefined;
+    }
+  }
+
+  if (role !== undefined) {
+    if (!userRoles.includes(role)) {
+      res.status(400);
+      throw new Error('Invalid user role.');
+    }
+    if (user._id.equals(req.user._id) && role !== user.role) {
+      res.status(400);
+      throw new Error('You cannot change your own role.');
+    }
+    user.role = role;
+  }
+
+  if (password) {
+    if (typeof password !== 'string' || password.length < 6) {
+      res.status(400);
+      throw new Error('Password must be at least 6 characters.');
+    }
+    user.password = password;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+  }
+
+  await user.save();
+  res.json(await User.findById(user._id).select('-password'));
+});
+
+export const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found.');
+  }
+  if (user._id.equals(req.user._id)) {
+    res.status(400);
+    throw new Error('You cannot delete your own account.');
+  }
+
+  await user.deleteOne();
+  res.json({ message: 'User removed.' });
 });

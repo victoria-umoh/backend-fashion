@@ -7,30 +7,25 @@ import sendEmail from '../../utils/sendEmail.js';
 // @route   PUT /api/admin/orders/:id/pay
 // @access  Private/Admin
 export const adminMarkOrderAsPaid = asyncHandler(async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-
-    if (order) {
-      // Logic: If it was COD, we are now confirming we got the cash
-      order.isPaid = true;
-      order.paidAt = Date.now();
-      
-      // We record that an admin did this manually
-      order.paymentResult = {
-        id: `MANUAL_CONFIRM_${Date.now()}`,
-        status: 'COMPLETED',
-        update_time: Date.now(),
-        email_address: req.user.email, // Admin's email
-      };
-
-      const updatedOrder = await order.save();
-      res.json(updatedOrder);
-    } else {
-      res.status(404).json({ message: 'Order not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
   }
+  if (order.paymentMethod !== 'COD' || order.isPaid) {
+    res.status(409);
+    throw new Error('Only unpaid cash-on-delivery orders can be manually marked as paid.');
+  }
+
+  order.isPaid = true;
+  order.paidAt = new Date();
+  order.paymentResult = {
+    id: `MANUAL_CONFIRM_${Date.now()}`,
+    status: 'COMPLETED',
+    update_time: new Date().toISOString(),
+    email_address: req.user.email,
+  };
+  res.json(await order.save());
 });
 
 

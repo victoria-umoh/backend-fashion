@@ -4,7 +4,7 @@ import { reviewSchema } from './review.model.js';
 
 const productSchema = mongoose.Schema({
     name: { type: String, required: true },
-    image: { type: String, default: '/images/sample.jpg' },
+    image: { type: String, default: '/assets/images/clean-blank-shirt-hanger.jpg' },
     brand: { type: String, required: true },
     category: { type: String, required: true },
     description: { type: String, required: true },

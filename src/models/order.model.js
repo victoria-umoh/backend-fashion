@@ -8,7 +8,8 @@ const orderSchema = new mongoose.Schema({
       qty: { type: Number, required: true },
       image: { type: String, required: true },
       price: { type: Number, required: true },
-      size: { type: String, required: true },
+      size: { type: String, default: '' },
+      color: { type: String, default: '' },
       product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     },
   ],
@@ -25,6 +26,8 @@ const orderSchema = new mongoose.Schema({
     update_time: { type: String },
     email_address: { type: String },
   },
+  paymentProcessingAt: { type: Date },
+  expiresAt: { type: Date, expires: 0 },
   itemsPrice: { type: Number, required: true, default: 0.0 },
   taxPrice: { type: Number, required: true, default: 0.0 },
   shippingPrice: { type: Number, required: true, default: 0.0 },
@@ -35,6 +38,8 @@ const orderSchema = new mongoose.Schema({
   paidAt: { type: Date },
   isDelivered: { type: Boolean, required: true, default: false },
   deliveredAt: { type: Date },
+  confirmationEmailStatus: { type: String, enum: ['pending', 'sent', 'failed'], default: 'pending' },
+  confirmationEmailSentAt: { type: Date },
 }, { timestamps: true });
 
 const Order = mongoose.model('Order', orderSchema);
