@@ -51,6 +51,6 @@ Run backend unit tests with `npm test`. Before deployment, also run the frontend
 
 ## Render deployment
 
-The root `render.yaml` defines the API web service from `feature/modern-ecommerce`; connect this backend repository to Render and create a Blueprint from that file. Render supplies the public API origin after the service is created. The Blueprint deliberately leaves the compute plan unspecified so the account owner can review pricing before creating a service.
+The root `render.yaml` defines a free API web service from `feature/modern-ecommerce`; connect this backend repository to Render and create a Blueprint from that file. This is for staging/demo only, not production: Render's free web services can spin down while idle. Render supplies the public API origin after the service is created.
 
 Use MongoDB Atlas for `MONGO_URI` (a replica set is required in production), migrate the local `fashion` database if its products/users should be retained, and enter all `sync: false` values in Render's secret/environment settings. Set `FRONTEND_URL` to the final Vercel origin. Configure the Paystack webhook as `https://<render-api-origin>/api/payments/webhook`. Do not deploy until the required secrets and database are configured; production startup intentionally fails closed otherwise.

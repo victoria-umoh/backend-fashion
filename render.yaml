@@ -3,6 +3,7 @@ services:
     name: frontend-fashion-api
     runtime: node
     branch: feature/modern-ecommerce
+    plan: free
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
